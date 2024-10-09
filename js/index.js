@@ -31,13 +31,8 @@ getSW_Films().then((swFilms) => {
     });
     console.log("arr_datos=", arr_datos);
 
-    let arr_titulos = arr_datos.map(dt => {
-        return dt.titulo;
-    });
-
-    let arr_anios = arr_datos.map(dt => {
-        return dt.anios;
-    });
+    let arr_titulos = arr_datos.map( dt => dt.titulo );
+    let arr_anios = arr_datos.map( dt => dt.anios );
 
     console.log("arr_titulos", arr_titulos);
     console.log("arr_anios", arr_anios);
@@ -51,8 +46,9 @@ getSW_Films().then((swFilms) => {
     };
 
     let anioInicio = arr_anios[0];
-    let anioFin = arr_anios[ arr_anios.length - 1]
-    // Opciones para la gráfica
+    let anioFin = arr_anios[ arr_anios.length - 1];
+
+    // opciones para la gráfica
     let options = {
         axisY: {
             low: anioInicio,
@@ -63,8 +59,6 @@ getSW_Films().then((swFilms) => {
         height: '300px',
         showPoint: true,
         showArea: true,
-
-
     };
     new Chartist.Line('.ct-chart_0', data, options);
     console.log("****************");
@@ -121,37 +115,43 @@ getSW_Personajes().then((swPersonajes) => {
         ]
     };
 
-    let numMenor = Math.min(...arr_numPeliculas);
+    // obtenemos 
     let numMayor = Math.max(...arr_numPeliculas);
 
     // Opciones para la gráfica
     let options = {
         axisY: {
-            low: numMenor,
-            high: numMayor,
+            low: 0,
+            high: numMayor + 1,
             scaleMinSpace: 10,
             onlyInteger: true
         },
         height: '300px',
         showPoint: true,
         showArea: true,
-        showLabel: true,
-        
-        tooltipFnc: undefined, // Accepts function
-  // Build custom tooltip
-
-  transformTooltipTextFnc: undefined, // Accepts function
-  // Transform tooltip text
-
-  class: undefined, // Accecpts 'class1', 'class1 class2', etc.
-  // Adds class(es) to the tooltip wrapper
-
-  anchorToPoint: false, // Accepts true or false
+        showLabel: true
     };
     new Chartist.Line('.ct-chart_1', data, options);
     console.log("****************");
 });
 
+async function buscarTituloPorId(id) {
+    try {
+        const data = await getSW_Films(); // Obtener los datos de las películas
+        
+        // Buscar en el array results
+        const resultado = data.results.find((item) => item.episode_id === id);
+        
+        // Si se encuentra el resultado, devolver el título; de lo contrario, lanzar un error
+        if (resultado) {
+            return resultado.title;
+        } else {
+            throw new Error(`No se encontró una película con el ID: ${id}`);
+        }
+    } catch (error) {
+        console.log(`ERROR: ${error.message}`);
+    }
+}
 
 getSW_Personajes().then((swPersonajes) => {
     console.log("Ejercicio Star Wars Personajes *********");
@@ -159,12 +159,17 @@ getSW_Personajes().then((swPersonajes) => {
 
     let arr_resultados = swPersonajes.results;
 
+    /* let po = await buscarTituloPorId(2).then((titulo) => {
+        return titulo;
+    });
+    alert(po) */
+
     // Usamos map 
     const arr_datos = arr_resultados.map(item => {
         let nombre = item.name;
-        let numPeliculas = item.films.length;
+        let peliculas = item.films;
 
-        return {nombre, numPeliculas};
+        return {nombre, peliculas};
     });
 
     let arr_nombres = arr_datos.map(dt => {
@@ -172,48 +177,82 @@ getSW_Personajes().then((swPersonajes) => {
     });
 
     let arr_numPeliculas = arr_datos.map(dt => {
-        return dt.numPeliculas;
+        return dt.peliculas.length;
     });
 
     console.log("arr_nombres", arr_nombres);
     console.log("arr_numPeliculas", arr_numPeliculas);
 
     // código para la grafica
-    // Obtener una referencia al elemento canvas del DOM
+    // selector en el DOM
     const grafica = document.querySelector("#grafica");
-    // Las etiquetas son las que van en el eje X. 
-    const personajes = arr_nombres;
-    // Podemos tener varios conjuntos de datos. Comencemos con uno
-    const tooltip = {
-        label: "Aparición Personajes por película",
-        //data: arr_numPeliculas, // La data es un arreglo que debe tener la misma cantidad de valores que la cantidad de etiquetas
+    const personajes = arr_nombres; // eje X
+
+    // Opciones de grafica
+    const dataset = {
+        label: "Apariciones personajes / película",
         data: arr_numPeliculas,
-        backgroundColor: 'rgba(54, 162, 235, 0.2)', // Color de fondo
-        borderColor: 'rgba(54, 162, 235, 1)', // Color del borde
-        borderWidth: 1,// Ancho del borde
+        pointRadius: 5, 
+        borderWidth: 1,      
+        borderColor: 'rgba(54, 162, 235, 1)',   
+        backgroundColor: 'rgba(54, 162, 235, 0.2)', 
+
+        pointHoverRadius: 12, 
+        pointBackgroundColor: arr_numPeliculas.map(value => 
+            (value === Math.max(...arr_numPeliculas)) 
+            ? 'rgba(126, 200, 73, 0.8)' // color verde
+            : (value === Math.min(...arr_numPeliculas)) 
+            ? 'rgba(255, 99, 132, 0.8)' // color rojo
+            : 'rgba(54, 162, 235, 0.8)' // color azul
+        )
     };
 
     let optionsChar = {
-        type: 'line',// Tipo de gráfica
+        type: 'line', // Tipo de gráfica
         data: {
             labels: personajes,
-            datasets: [
-                tooltip
-            ]
+            datasets: [dataset]
         },
         options: {
+            layout: {
+                padding: {
+                    right: 20 // Ajusta este valor para aumentar o disminuir el margen a la derecha
+                }
+            },
             scales: {
+                xAxes: [{
+                    scaleLabel: {
+                        display: true,
+                        labelString: 'Películas',
+                        fontStyle: 'bold'
+                    }
+                }],
                 yAxes: [{
                     ticks: {
                         beginAtZero: true,
-                        min: 0,  // Comenzar en 0
+                        min: 0,
                         max: 8,
                         stepSize: 1
+                    },
+                    scaleLabel: {
+                        display: true,
+                        labelString: 'Apariciones totales',
+                        fontStyle: 'bold'
                     }
-                }],
+                }]
+            },
+            tooltips: {
+                callbacks: {
+                    label: function(tooltipItem, data) {
+                        const personaje = data.labels[tooltipItem.index];
+                        const apariciones = tooltipItem.yLabel ;
+                        let txtPelicula = (tooltipItem.yLabel == 1) ? 'película' : 'películas'
+                        return ` Ha aparecido en ${apariciones} ${txtPelicula}`;
+                    }
+                }
             }
         }
-    }
+    };
     new Chart(grafica, optionsChar);
 });
 
